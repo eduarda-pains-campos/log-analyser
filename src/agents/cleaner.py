@@ -6,8 +6,7 @@ ERROR_INDICATORS = (
     "FATAL",
     "KeyStoreException",
     "SecurityException",
-)
-
+);
 
 def cleaner_node(state: LogAnalysisState) -> dict[str, str]:
     """Keep matching error lines and up to two surrounding lines."""
