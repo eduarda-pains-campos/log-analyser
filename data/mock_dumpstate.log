@@ -1,0 +1,8 @@
+--------- beginning of system
+10-12 10:00:00.000  1000  1000 I ActivityManager: system is ready
+10-12 10:00:01.000  1000  1000 D KnoxService: initializing
+10-12 10:00:02.000  1000  1000 E AndroidRuntime: com.samsung.android.spayfw encountered a Knox SecurityException
+10-12 10:00:03.000  1000  1000 W KnoxService: wallet process reported an error
+10-12 10:00:04.000  1000  1000 I ActivityManager: continuing system startup
+--------- beginning of kernel
+kernel: unrelated system message
