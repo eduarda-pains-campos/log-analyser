@@ -1,0 +1,14 @@
+# Ambiente Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Credenciais
+.env
+.env.*
+
+# Base de dados e resultados gerados
+data/android_logs.csv
+data/android_logs_cleaned.csv
+data/incidents.json
+data/incidents_llm.json
