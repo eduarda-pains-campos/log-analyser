@@ -7,8 +7,7 @@ __pycache__/
 .env
 .env.*
 
-# Base de dados e resultados gerados
-data/android_logs.csv
+# Arquivos gerados pelo processamento
 data/android_logs_cleaned.csv
 data/incidents.json
 data/incidents_llm.json
