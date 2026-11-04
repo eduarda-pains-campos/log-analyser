@@ -1,0 +1,32 @@
+# Receita de geração: QUAIS problemas usar e COMO montar os casos.
+# Mude aqui a cada experimento; o catálogo em problemas/ continua igual.
+
+seed: 42                  # mesma seed + mesmos arquivos = mesmos casos
+
+app:
+  pacote: com.exemplo.carteira
+
+ruido:
+  # Logs reais usados como fundo (formato logcat, .log ou .txt). Cada caso sorteia um arquivo:
+  # casos de treino só usam pasta_treino; casos de teste só usam pasta_teste.
+  # Nunca coloque o mesmo log nas duas pastas.
+  pasta_treino: dados/treino
+  pasta_teste: dados/teste
+  linhas_por_caso: 400    # tamanho do trecho recortado de cada log (sem contar as linhas injetadas)
+
+# "todos" ou uma lista de ids (nome do campo id dos arquivos em problemas/)
+problemas: todos
+casos_por_problema: 20
+
+# Peso de cada tipo de caso (proporção relativa)
+tipos_de_caso:
+  simples: 6              # uma falha injetada, descrição bate com ela
+  dois_problemas: 2       # a falha alvo + outra falha de outro problema (precisa de 2+ problemas)
+  sem_erro_relevante: 2   # descrição de um problema, mas a falha NÃO está no log
+
+distratores_por_caso: {min: 1, max: 3}   # erros do app sem relação (distratores/)
+prob_variante: 0.5                        # chance de usar uma mensagem que não é a canônica
+max_ruido_entre_linhas: 2                 # linhas de outros processos no meio da falha (0 = contígua)
+
+proporcao_teste: 0.3      # parte dos casos que vai para teste (com frases do cliente separadas das de treino)
+saida: saida

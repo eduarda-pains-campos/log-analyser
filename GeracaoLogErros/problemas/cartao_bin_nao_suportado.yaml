@@ -1,0 +1,74 @@
+# Problema de teste: falha ao adicionar cartão porque o BIN não é suportado.
+# Copie este arquivo para criar um problema novo (um arquivo por problema).
+
+id: cartao_bin_nao_suportado
+descricao: >
+  O cliente tenta adicionar um cartão na carteira e a tokenização recusa o cartão porque o BIN
+  (6 primeiros dígitos) não está na lista de emissores habilitados.
+
+# Valores sorteados a cada caso. Use {nome} nas linhas para inserir o valor.
+# Tipos: inteiro (min/max), hex (tamanho), uuid, escolha (valores), variante (valores).
+# "variante": o 1º valor é a mensagem canônica; os outros são formas diferentes de dizer o mesmo
+# erro (testam se a busca no Jira acha o ticket mesmo com texto diferente).
+variaveis:
+  card_last4: {tipo: inteiro, min: 1000, max: 9999}
+  bin: {tipo: escolha, valores: ["506699", "636368", "650031", "509048"]}
+  request_id: {tipo: hex, tamanho: 12}
+  latencia_ms: {tipo: inteiro, min: 180, max: 1400}
+  linha_kt: {tipo: inteiro, min: 140, max: 160}
+  motivo:
+    tipo: variante
+    valores:
+      - "BIN not supported"
+      - "Issuer BIN unsupported for tokenization"
+      - "card range not eligible for provisioning"
+
+# Linhas da falha, na ordem em que aparecem no log.
+#   nivel:  V, D, I, W, E ou F (nível do logcat)
+#   papel:  nucleo   -> faz parte da falha (o que o sistema deve apontar como início/fim)
+#           contexto -> acontece em volta e ajuda a entender, mas não é a falha
+#   thread: principal (padrão) ou worker
+linhas:
+  - {nivel: I, tag: CardOnboarding, papel: contexto, msg: "Iniciando adicao de cartao final {card_last4}"}
+  - {nivel: D, tag: PaymentTokenization, papel: contexto, thread: worker, msg: "POST /v1/tokenize request_id={request_id}"}
+  - {nivel: W, tag: NetworkClient, papel: contexto, thread: worker, msg: "HTTP 402 em {latencia_ms}ms request_id={request_id}"}
+  - {nivel: E, tag: PaymentTokenization, papel: nucleo, thread: worker, msg: "error card_bin_not_supported code=402 bin={bin} request_id={request_id}"}
+  - {nivel: E, tag: PaymentTokenization, papel: nucleo, thread: worker, msg: "com.exemplo.carteira.tokenization.TokenizationException: {motivo}"}
+  - {nivel: E, tag: PaymentTokenization, papel: nucleo, thread: worker, msg: "    at com.exemplo.carteira.tokenization.TokenService.tokenize(TokenService.kt:{linha_kt})"}
+  - {nivel: E, tag: PaymentTokenization, papel: nucleo, thread: worker, msg: "    at com.exemplo.carteira.onboarding.AddCardViewModel$submit$1.invokeSuspend(AddCardViewModel.kt:88)"}
+  - {nivel: E, tag: PaymentTokenization, papel: nucleo, thread: worker, msg: "    at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)"}
+  - {nivel: I, tag: CardOnboarding, papel: contexto, msg: "Exibindo dialogo: Nao foi possivel adicionar o cartao"}
+
+jira:
+  # presente: false simula um erro desconhecido (o ticket não entra no Jira simulado).
+  presente: true
+  ticket:
+    id: WAL-101
+    titulo: Cartão recusado na tokenização por BIN fora da lista de emissores
+    descricao: >
+      Ao adicionar o cartão, o app mostra "Não foi possível adicionar o cartão". A tokenização
+      responde 402 porque o BIN do cartão não pertence a um emissor habilitado.
+    causa_raiz: Lista de BINs habilitados no provedor de tokenização desatualizada para alguns emissores.
+    solucao: Validar o BIN antes de chamar a tokenização e solicitar inclusão do emissor ao provedor.
+    # De propósito, não é o mesmo texto do log: a busca precisa casar pelo sentido.
+    assinatura: "TokenizationException ao tokenizar cartão: emissor do BIN não habilitado (HTTP 402)"
+  # Tickets parecidos, mas de OUTRO problema. Sempre entram no Jira simulado, para testar se o
+  # sistema evita o falso "conhecido".
+  iscas:
+    - id: WAL-117
+      titulo: Timeout na tokenização ao adicionar cartão
+      descricao: Ao adicionar cartão, a chamada de tokenização excede 30s e o app mostra erro genérico.
+      causa_raiz: Pool de conexões do provedor de tokenização saturado em horário de pico.
+      solucao: Aumentar timeout e aplicar retry com backoff.
+      assinatura: "SocketTimeoutException em TokenService.tokenize após 30000ms"
+
+# Como o cliente descreveria o problema. Vários estilos e graus de precisão.
+descricoes_cliente:
+  - {estilo: formal, texto: "Não estou conseguindo adicionar meu cartão de crédito na carteira."}
+  - {estilo: bravo, texto: "JÁ TENTEI 5 VEZES COLOCAR O CARTÃO E SÓ DÁ ERRO!!! que app ruim"}
+  - {estilo: vago, texto: "o cartão não entra"}
+  - {estilo: vago, texto: "deu um erro aqui quando fui usar"}
+  - {estilo: erro_portugues, texto: "naum consigo adisionar o cartao fica dando q nao foi possivel"}
+  - {estilo: detalhado, texto: "Coloquei todos os dados do cartão, apertei em adicionar, carregou um pouco e apareceu que não foi possível adicionar o cartão."}
+  - {estilo: formal, texto: "O aplicativo recusa o cadastro do meu cartão, mas o cartão funciona normalmente em outras lojas."}
+  - {estilo: bravo, texto: "Meu cartão é novo e o app de vocês não aceita, resolvam isso"}

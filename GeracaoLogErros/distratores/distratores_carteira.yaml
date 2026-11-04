@@ -1,0 +1,33 @@
+# Erros do próprio app que NÃO têm relação com a queixa do cliente.
+# São os "negativos difíceis": mesmo domínio, mesmo processo, começam com erro,
+# e o classificador precisa descartá-los. Mesmo formato dos problemas, mas sem jira/descrições.
+
+distratores:
+  - id: analytics_flush
+    variaveis:
+      eventos: {tipo: inteiro, min: 3, max: 80}
+    linhas:
+      - {nivel: E, tag: AnalyticsUploader, thread: worker, msg: "error failed to flush {eventos} events code=503"}
+      - {nivel: I, tag: AnalyticsUploader, thread: worker, msg: "Reagendando envio em 60s"}
+
+  - id: banner_imagem
+    variaveis:
+      banner: {tipo: hex, tamanho: 8}
+    linhas:
+      - {nivel: E, tag: ImageLoader, msg: "error decode failed for https://cdn.exemplo.com/banners/{banner}.webp"}
+
+  - id: push_token
+    linhas:
+      - {nivel: W, tag: PushRegistration, thread: worker, msg: "FCM token expirado, solicitando novo"}
+      - {nivel: E, tag: PushRegistration, thread: worker, msg: "error token refresh failed: SERVICE_NOT_AVAILABLE"}
+
+  - id: cotacao_cache
+    variaveis:
+      idade_s: {tipo: inteiro, min: 400, max: 9000}
+    linhas:
+      - {nivel: E, tag: QuoteCache, msg: "error stale cache entry age={idade_s}s key=fx_brl_usd, usando valor antigo"}
+
+  - id: biometria_cancelada
+    linhas:
+      - {nivel: E, tag: BiometricPrompt, msg: "error code=10 ERROR_USER_CANCELED"}
+      - {nivel: I, tag: LoginFlow, msg: "Usuario cancelou biometria, exibindo PIN"}

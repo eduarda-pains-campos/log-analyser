@@ -3,3 +3,4 @@ langchain-core
 langchain
 langchain-ollama
 pydantic
+pyyaml

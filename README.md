@@ -103,6 +103,20 @@ Saída: `data/incidents_llm.json`, contendo as decisões dos pares e os incident
 
 A confiança informada pelo modelo é uma estimativa, não uma probabilidade calibrada. As decisões precisam ser comparadas às mensagens originais antes de considerar os grupos como incidentes reais.
 
+## Geração de casos de teste — `GeracaoLogErros/`
+
+Gerador de casos sintéticos com gabarito para medir cada etapa do pipeline. Cada caso tem um log Android
+real (Loghub) com uma falha do app injetada no meio, a frase do cliente e a resposta esperada (linhas
+de início e fim da falha, ticket do Jira ou "desconhecido"). Os erros simulados são definidos em
+arquivos YAML, um por problema.
+
+```powershell
+.\.venv\Scripts\python.exe GeracaoLogErros/gerar_casos.py
+```
+
+Detalhes em [GeracaoLogErros/README.md](GeracaoLogErros/README.md) e o problema em
+[GeracaoLogErros/PROBLEMA.md](GeracaoLogErros/PROBLEMA.md).
+
 ## Arquivos de dados
 
 | Arquivo | Finalidade |
