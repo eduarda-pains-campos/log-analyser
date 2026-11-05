@@ -2,5 +2,6 @@ langgraph
 langchain-core
 langchain
 langchain-ollama
+langchain-groq
 pydantic
 pyyaml

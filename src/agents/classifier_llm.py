@@ -14,10 +14,11 @@ from collections import Counter
 from datetime import datetime
 from itertools import combinations
 from pathlib import Path
+import time
 from typing import Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
 
 
@@ -35,9 +36,9 @@ NUM_PREDICT = 2048
 
 # Um par so e enviado ao modelo se houver eventos proximos e
 # pelo menos um sinal de correlacao (mesmo componente, PID ou TID).
-MAX_EVENT_GAP_SECONDS = 2.0
+MAX_EVENT_GAP_SECONDS = 1.0
 MIN_CONFIDENCE_TO_MERGE = 0.80
-BATCH_SIZE = 6
+BATCH_SIZE = 4
 MAX_CLUSTER_SPAN_SECONDS = 10.0
 
 RELATIONS = {
@@ -368,16 +369,14 @@ def analyze_pair_batch(llm, batch: list[dict]) -> dict[str, PairDecision]:
 
 
 def analyze_all_pairs(pairs: list[dict]) -> list[dict]:
-    """Executa o LLM em lotes pequenos e registra cada decisao."""
     if not pairs:
-        print("Nenhum par candidato possui evidencias proximas suficientes.")
+        print("Nenhum par candidato possui evidências próximas suficientes.")
         return []
 
-    llm = ChatOllama(
-        model=MODEL_NAME,
+    # 1. Instancia o LLM apenas UMA VEZ usando o modelo mais rápido da Groq
+    llm = ChatGroq(
+        model="openai/gpt-oss-20b",
         temperature=0,
-        num_ctx=NUM_CTX,
-        num_predict=NUM_PREDICT,
     )
 
     all_decisions = []
@@ -385,8 +384,7 @@ def analyze_all_pairs(pairs: list[dict]) -> list[dict]:
 
     for batch_index in range(total_batches):
         start = batch_index * BATCH_SIZE
-        batch = pairs[start:start + BATCH_SIZE]
-        pair_ids = {pair["pair_id"] for pair in batch}
+        batch = pairs[start : start + BATCH_SIZE]
 
         print(
             f"Analisando lote {batch_index + 1}/{total_batches} "
@@ -427,14 +425,15 @@ def analyze_all_pairs(pairs: list[dict]) -> list[dict]:
                     "left_group_id": pair["left_group"]["candidate_group_id"],
                     "right_group_id": pair["right_group"]["candidate_group_id"],
                     "relation": decision.relation,
-                    # Converte a nota do LLM (1-5) para a escala interna (0-1).
-                    # Assim, o limite MIN_CONFIDENCE_TO_MERGE=0.80 equivale a nota 4/5.
                     "confidence": round(decision.confidence / 5.0, 2),
                     "confidence_score_1_to_5": decision.confidence,
                     "explanation": decision.explanation,
                     "merge_applied": False,
                     "merge_rejection_reason": None,
                 })
+
+        # 2. Pausa mínima de apenas 0.5s para manter a execução rápida
+        time.sleep(0.5)
 
     return all_decisions
 
@@ -804,6 +803,19 @@ def run_classifier_llm() -> dict:
     print("Arquivo gerado:", OUTPUT_PATH)
 
     return result
+
+def classifier_llm_node(state: dict) -> dict:
+    """
+    Nó do LangGraph que recebe o resultado do classifier determinístico
+    e consolida os incidentes usando o modelo LLM.
+    """
+    # Executa a pipeline do LLM
+    result = run_classifier_llm()
+
+    return {
+        "final_incidents": result.get("incidents", []),
+        "classifier_llm_summary": result.get("summary", {})
+    }
 
 
 if __name__ == "__main__":

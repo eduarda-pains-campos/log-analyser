@@ -1,32 +1,63 @@
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from src.graph import graph
+
+ROOT_DIR = Path(__file__).resolve().parent
+LOG_FILE_PATH = (
+    ROOT_DIR
+    / "GeracaoLogErros"
+    / "dados"
+    / "teste"
+    / "loghub_android_2k_teste.log"
+)
+
+
+def load_raw_log(path: Path) -> str:
+    if not path.exists():
+        raise FileNotFoundError(f"Arquivo não encontrado: {path}")
+    with path.open("r", encoding="utf-8", errors="ignore") as file:
+        return file.read()
 
 
 def main() -> None:
-    raw_log = """--------- beginning of system
-10-12 10:00:00.000  1000  1000 I ActivityManager: system is ready
-10-12 10:00:01.000  1000  1000 D KnoxService: initializing
-10-12 10:00:02.000  1000  1000 E AndroidRuntime: com.samsung.android.spayfw encountered a Knox SecurityException
-10-12 10:00:03.000  1000  1000 W KnoxService: wallet process reported an error
-10-12 10:00:04.000  1000  1000 I ActivityManager: continuing system startup
---------- beginning of kernel
-kernel: unrelated system message"""
+    print(f"📂 Carregando log: {LOG_FILE_PATH.name}")
+    raw_log_content = load_raw_log(LOG_FILE_PATH)
 
-    result = graph.invoke(
-        {
-            "raw_log": raw_log,
-            "cleaned_log": "",
-            "app_targets": [
-                "com.samsung.android.spay",
-                "com.samsung.android.spayfw",
-            ],
-            "context_message": "Investigue falhas relacionadas ao Knox na Samsung Wallet.",
-        }
-    )
+    print("🚀 Executando Pipeline no LangGraph...")
 
-    print("--- cleaned_log ---")
-    print(result["cleaned_log"])
-    print("--- context_message ---")
-    print(result["context_message"])
+    initial_state = {
+        "raw_log": raw_log_content,
+        "cleaned_log": "",
+        "app_targets": [
+            "com.samsung.android.spay",
+            "com.samsung.android.spayfw",
+            "KnoxService",
+        ],
+        "context_message": "Investigar falhas relacionadas ao Knox e Samsung Wallet.",
+    }
+
+    final_state = graph.invoke(initial_state)
+
+    # ----------------------------------------------------
+    # EXIBIÇÃO SUCINTA NO TERMINAL
+    # ----------------------------------------------------
+    summary = final_state.get("classifier_llm_summary", {})
+    incidents = final_state.get("final_incidents", [])
+
+    print("\n==========================================")
+    print("        RESUMO EXECUTIVO DA ANÁLISE       ")
+    print("==========================================")
+    print(f"• Total de Logs Lidos:       {summary.get('source_event_count', 0)}")
+    print(f"• Candidatos (Regras):       {summary.get('candidate_groups', 0)}")
+    print(f"• Incidentes Consolidados:  {len(incidents)}")
+    print(f"• Agrupamentos via IA:       {summary.get('accepted_merge_links', 0)}")
+    print("------------------------------------------")
+    print("📁 Relatório detalhado salvo com sucesso em:")
+    print("   -> data/final_report.md")
+    print("==========================================\n")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import csv
 import re
 from collections import Counter
 from pathlib import Path
-
+from src.state import LogAnalysisState
 
 # Localização do projeto
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -23,7 +23,6 @@ CRITICAL_PATTERNS = [
     re.compile(r"\bFatal signal\b", re.IGNORECASE),
     re.compile(r"\bANR in\b", re.IGNORECASE),
 ]
-
 
 def classify_row(row: dict[str, str]) -> str | None:
     """Identifica warnings e errors no registro."""
@@ -164,6 +163,24 @@ def clean_csv(
 
     return summary
 
+def cleaner_node(state: LogAnalysisState) -> dict:
+    """Nó do LangGraph responsável por pré-processar e limpar os logs."""
+    raw_log = state.get("raw_log", "")
+    app_targets = state.get("app_targets", [])
+
+    cleaned_lines = []
+    if raw_log:
+        for line in raw_log.strip().splitlines():
+            if any(target in line for target in app_targets) or " E " in line or " W " in line:
+                cleaned_lines.append(line)
+
+    cleaned_log_str = "\n".join(cleaned_lines) if cleaned_lines else raw_log
+    summary = clean_csv()
+
+    return {
+        "cleaned_log": cleaned_log_str,
+        "cleaner_summary": summary
+    }
 
 if __name__ == "__main__":
     clean_csv()
